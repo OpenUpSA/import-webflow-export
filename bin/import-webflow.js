@@ -1,5 +1,7 @@
 #! /usr/bin/env node
 
+const tmp = require('tmp');
+const extract = require('extract-zip');
 const argv = require('yargs')
       .usage('$0 <cmd> [args]')
       .command('$0 webflow-export-zipfile', 'Import Webflow exports repeatably.', (yargs) => {
@@ -12,5 +14,6 @@ const argv = require('yargs')
       .argv;
 
 function importZipfile(zipfilePath) {
-  console.log(zipfilePath);
+  const tmpDir = tmp.dirSync();
+  extract(zipfilePath, { dir: tmpDir.name });
 }
