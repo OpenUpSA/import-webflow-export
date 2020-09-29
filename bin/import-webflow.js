@@ -50,7 +50,6 @@ function copyTrees(tmpDir) {
 function ncpCallback(err) {
   if (err)
     console.error(err);
-  console.log("Done.");
 }
 
 function importHtml(tmpDir) {
@@ -71,19 +70,20 @@ function importHtmlFile(filename, tmpDir, destDir) {
     if (err)
       return console.error(err);
 
-    const window = new JSDOM(inData, {
+    const dom = new JSDOM(inData, {
       // standard options:  disable loading other assets
       // or executing script tags
       FetchExternalResources: false,
       ProcessExternalResources: false,
       MutationEvents: false,
       QuerySelector: false
-    }).window;
-    const windowJQuery = jQuery.create(window);
+    });
 
-    const outData = window.document.doctype + window.document.innerHTML;
+    const $ = jQuery(dom.window);
 
-    const outFilename = `${destDir}/${relativePath}`;
+    const outData = dom.serialize();
+
+    const outFilename = `${destDir}${relativePath}`;
     console.log("Writing", outFilename);
     fs.writeFile(outFilename, outData, 'utf8', function(err) {
       if (err)
