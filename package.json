@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "extract-zip": "^2.0.1",
+    "ncp": "^2.0.0",
     "tmp": "^0.2.1",
     "yargs": "^16.0.3"
   }

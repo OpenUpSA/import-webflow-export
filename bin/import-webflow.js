@@ -2,6 +2,15 @@
 
 const tmp = require('tmp');
 const extract = require('extract-zip');
+const ncp = require('ncp').ncp;
+
+const copyTrees = {
+  "css": "src/css",
+  "js": "src/js",
+  "images": "src/images",
+  "fonts": "src/fonts",
+};
+
 const argv = require('yargs')
       .usage('$0 <cmd> [args]')
       .command('$0 webflow-export-zipfile', 'Import Webflow exports repeatably.', (yargs) => {
@@ -13,7 +22,17 @@ const argv = require('yargs')
       .help()
       .argv;
 
-function importZipfile(zipfilePath) {
+async function importZipfile(zipfilePath) {
   const tmpDir = tmp.dirSync();
-  extract(zipfilePath, { dir: tmpDir.name });
+  await extract(zipfilePath, { dir: tmpDir.name });
+
+  for (let sourceDir in copyTrees) {
+    const destDir = copyTrees[sourceDir];
+    ncp(`${tmpDir.name}/${sourceDir}`, destDir, { stopOnError: true }, ncpCallback);
+  }
+}
+
+function ncpCallback(err) {
+  if (err)
+    console.error(err);
 }
