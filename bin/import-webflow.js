@@ -8,6 +8,7 @@ const { JSDOM } = jsdom;
 const jQuery = require('jquery');
 const fs = require('fs');
 const glob = require("glob");
+const rimraf = require("rimraf");
 
 const defaults = {
   copyTrees: {
@@ -34,9 +35,13 @@ const argv = require('yargs')
 
 async function importZipfile(zipfilePath) {
   const tmpDir = tmp.dirSync().name;
+  console.log("Extracting to temporary directory", tmpDir);
   await extract(zipfilePath, { dir: tmpDir });
   copyTrees(tmpDir);
   importHtml(tmpDir);
+  console.log("Cleaning up temporary directory", tmpDir);
+  rimraf(tmpDir, (err) => { if (err) console.error(err); });
+
 }
 
 function copyTrees(tmpDir) {
@@ -55,10 +60,8 @@ function ncpCallback(err) {
 function importHtml(tmpDir) {
   defaults.importHtml.forEach((config) => {
     console.log(`Looking for files matching ${config.glob} in ${tmpDir}`);
-    glob(`${tmpDir}/${config.glob}`, function (er, files) {
-      files.forEach(file => {
-        importHtmlFile(file, tmpDir, config.destDir);
-      });
+    glob.sync(`${tmpDir}/${config.glob}`).forEach(file => {
+      importHtmlFile(file, tmpDir, config.destDir);
     });
   });
 };
@@ -66,28 +69,22 @@ function importHtml(tmpDir) {
 function importHtmlFile(filename, tmpDir, destDir) {
   const relativePath = filename.slice(tmpDir.length);
   console.log("Reading", filename);
-  fs.readFile(filename, 'utf8', function(err, inData) {
-    if (err)
-      return console.error(err);
+  const inData = fs.readFileSync(filename, 'utf8');
 
-    const dom = new JSDOM(inData, {
-      // standard options:  disable loading other assets
-      // or executing script tags
-      FetchExternalResources: false,
-      ProcessExternalResources: false,
-      MutationEvents: false,
-      QuerySelector: false
-    });
-
-    const $ = jQuery(dom.window);
-
-    const outData = dom.serialize();
-
-    const outFilename = `${destDir}${relativePath}`;
-    console.log("Writing", outFilename);
-    fs.writeFile(outFilename, outData, 'utf8', function(err) {
-      if (err)
-        console.error(err);
-    });
+  const dom = new JSDOM(inData, {
+    // standard options:  disable loading other assets
+    // or executing script tags
+    FetchExternalResources: false,
+    ProcessExternalResources: false,
+    MutationEvents: false,
+    QuerySelector: false
   });
+
+  const $ = jQuery(dom.window);
+
+  const outData = dom.serialize();
+
+  const outFilename = `${destDir}${relativePath}`;
+  console.log("Writing", outFilename);
+  fs.writeFileSync(outFilename, outData, 'utf8');
 }
