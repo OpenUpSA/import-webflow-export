@@ -9,6 +9,7 @@ const jQuery = require('jquery');
 const fs = require('fs');
 const glob = require("glob");
 const rimraf = require("rimraf");
+const load = require('load-plugin');
 
 const defaults = {
   copyTrees: {
@@ -34,17 +35,24 @@ const argv = require('yargs')
       .argv;
 
 async function importZipfile(zipfilePath) {
+  //module.paths.push(process.cwd());
+  console.log(__dirname)
+
   const tmpDir = tmp.dirSync().name;
   console.log("Extracting to temporary directory", tmpDir);
   await extract(zipfilePath, { dir: tmpDir });
-  copyTrees(tmpDir);
-  importHtml(tmpDir);
+  const packageJson = JSON.parse(fs.readFileSync("package.json", 'utf8'));
+  const config = packageJson.importWebflowExport;
+  console.log(config && config.importHtml);
+  copyTrees(tmpDir, config && config.copyTrees);
+  await importHtml(tmpDir, config && config.importHtml);
   console.log("Cleaning up temporary directory", tmpDir);
   rimraf(tmpDir, (err) => { if (err) console.error(err); });
 
 }
 
-function copyTrees(tmpDir) {
+function copyTrees(tmpDir, packageConfig) {
+  const config = packageConfig || defaults.copyTrees;
   for (let sourceDir in defaults.copyTrees) {
     const destDir = defaults.copyTrees[sourceDir];
     console.log("Copying", sourceDir, "to", destDir);
@@ -57,21 +65,33 @@ function ncpCallback(err) {
     console.error(err);
 }
 
-function importHtml(tmpDir) {
-  defaults.importHtml.forEach((config) => {
-    console.log(`Looking for files matching ${config.glob} in ${tmpDir}`);
-    glob.sync(`${tmpDir}/${config.glob}`).forEach(file => {
-      importHtmlFile(file, tmpDir, config.destDir);
+function importHtml(tmpDir, packageConfig) {
+  const config = packageConfig || defaults.importHtml;
+  config.forEach((globConfig) => {
+    console.log(`Looking for files matching ${globConfig.glob} in ${tmpDir}`);
+    glob.sync(`${tmpDir}/${globConfig.glob}`).forEach(async file => {
+      await importHtmlFile(file, tmpDir, globConfig.destDir, globConfig.transforms);
     });
   });
 };
 
-function importHtmlFile(filename, tmpDir, destDir) {
+async function importHtmlFile(filename, tmpDir, destDir, transformsModulePath) {
   const relativePath = filename.slice(tmpDir.length);
   console.log("Reading", filename);
   const inData = fs.readFileSync(filename, 'utf8');
+  const dom = parseHtml(inData);
+  const $ = jQuery(dom.window);
 
-  const dom = new JSDOM(inData, {
+  await transformHtml($, transformsModulePath);
+
+  const outData = dom.serialize();
+  const outFilename = `${destDir}${relativePath}`;
+  console.log("Writing", outFilename);
+  fs.writeFileSync(outFilename, outData, 'utf8');
+}
+
+function parseHtml(html) {
+  return new JSDOM(html, {
     // standard options:  disable loading other assets
     // or executing script tags
     FetchExternalResources: false,
@@ -79,12 +99,14 @@ function importHtmlFile(filename, tmpDir, destDir) {
     MutationEvents: false,
     QuerySelector: false
   });
+}
 
-  const $ = jQuery(dom.window);
-
-  const outData = dom.serialize();
-
-  const outFilename = `${destDir}${relativePath}`;
-  console.log("Writing", outFilename);
-  fs.writeFileSync(outFilename, outData, 'utf8');
+async function transformHtml($, transformsModulePath) {
+  if (transformsModulePath === undefined) {
+    console.log("No transformation module provided");
+  } else {
+    console.log("Transforming using", transformsModulePath);
+    const mod = await load(transformsModulePath);
+    mod.transform($);
+  }
 }
