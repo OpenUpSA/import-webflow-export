@@ -12,6 +12,9 @@
   },
   "dependencies": {
     "extract-zip": "^2.0.1",
+    "glob": "^7.1.6",
+    "jquery": "^3.5.1",
+    "jsdom": "^16.4.0",
     "ncp": "^2.0.0",
     "tmp": "^0.2.1",
     "yargs": "^16.0.3"
