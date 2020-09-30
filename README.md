@@ -123,6 +123,8 @@ arguments
 - `window`: a DOM window object
 - `$`: a jQuery object initialised on the same window object.
 
+e.g. for a file `src/js/webflow/import.js`
+
 ```js
 exports.transform = function(window, $) {
   $("title").text("This was modified programmatically!");
@@ -132,4 +134,16 @@ exports.transform = function(window, $) {
   tagd.setAttribute("src", "js/index.js");
   window.document.body.appendChild(tag);
 };
+```
+
+and config
+
+```json
+"importHtml": [
+  {
+    "glob": "*.html",
+    "destDir": "src",
+    "transforms": "./src/js/webflow/import.js"
+  }
+]
 ```
