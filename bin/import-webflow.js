@@ -80,8 +80,9 @@ async function importHtmlFile(filename, tmpDir, destDir, transformsModulePath) {
     console.log("Transforming using", transformsModulePath);
     const mod = await load(transformsModulePath);
 
-    if (mod.transformDOM)
-      newHtml = transformDOM(mod.transformDOM, newHtml);
+    const domTransform = mod.transformDOM || mod.transform;
+    if (domTransform)
+      newHtml = transformDOM(domTransform, newHtml);
 
     if (mod.transformHTML)
       newHtml = mod.transformHTML(newHtml);
