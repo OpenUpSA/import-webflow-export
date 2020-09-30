@@ -36,14 +36,12 @@ const argv = require('yargs')
 
 async function importZipfile(zipfilePath) {
   //module.paths.push(process.cwd());
-  console.log(__dirname)
 
   const tmpDir = tmp.dirSync().name;
   console.log("Extracting to temporary directory", tmpDir);
   await extract(zipfilePath, { dir: tmpDir });
   const packageJson = JSON.parse(fs.readFileSync("package.json", 'utf8'));
   const config = packageJson.importWebflowExport;
-  console.log(config && config.importHtml);
   copyTrees(tmpDir, config && config.copyTrees);
   await importHtml(tmpDir, config && config.importHtml);
   console.log("Cleaning up temporary directory", tmpDir);
@@ -79,10 +77,10 @@ async function importHtmlFile(filename, tmpDir, destDir, transformsModulePath) {
   const relativePath = filename.slice(tmpDir.length);
   console.log("Reading", filename);
   const inData = fs.readFileSync(filename, 'utf8');
-  const dom = parseHtml(inData);
+  const dom = new JSDOM(inData);
   const $ = jQuery(dom.window);
 
-  await transformHtml($, transformsModulePath);
+  await transformHtml(dom.window, $, transformsModulePath);
 
   const outData = dom.serialize();
   const outFilename = `${destDir}${relativePath}`;
@@ -90,23 +88,12 @@ async function importHtmlFile(filename, tmpDir, destDir, transformsModulePath) {
   fs.writeFileSync(outFilename, outData, 'utf8');
 }
 
-function parseHtml(html) {
-  return new JSDOM(html, {
-    // standard options:  disable loading other assets
-    // or executing script tags
-    FetchExternalResources: false,
-    ProcessExternalResources: false,
-    MutationEvents: false,
-    QuerySelector: false
-  });
-}
-
-async function transformHtml($, transformsModulePath) {
+async function transformHtml(window, $, transformsModulePath) {
   if (transformsModulePath === undefined) {
     console.log("No transformation module provided");
   } else {
     console.log("Transforming using", transformsModulePath);
     const mod = await load(transformsModulePath);
-    mod.transform($);
+    mod.transform(window, $);
   }
 }
