@@ -1,6 +1,6 @@
 {
   "name": "import-webflow-export",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Import a Webflow export repeatably.",
   "main": "index.js",
   "repository": "https://github.com/OpenUpSA/import-webflow-export",
