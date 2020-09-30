@@ -70,26 +70,34 @@ function importHtml(tmpDir, packageConfig) {
 async function importHtmlFile(filename, tmpDir, destDir, transformsModulePath) {
   const relativePath = filename.slice(tmpDir.length);
   console.log("Reading", filename);
+
   const inData = fs.readFileSync(filename, 'utf8');
-  const dom = new JSDOM(inData);
-  const $ = jQuery(dom.window);
+  let newHtml = inData;
 
-  await transformHtml(dom.window, $, transformsModulePath);
+  if (transformsModulePath === undefined) {
+    console.log("No DOM transformation provided");
+  } else {
+    console.log("Transforming using", transformsModulePath);
+    const mod = await load(transformsModulePath);
 
-  const outData = dom.serialize();
+    const domTransform = mod.transformDOM || mod.transform;
+    if (domTransform)
+      newHtml = transformDOM(domTransform, newHtml);
+
+    if (mod.transformHTML)
+      newHtml = mod.transformHTML(newHtml);
+  }
+
   const outFilename = `${destDir}${relativePath}`;
   const outDir = path.dirname(outFilename);
   fs.mkdirpSync(outDir);
   console.log("Writing", outFilename);
-  fs.writeFileSync(outFilename, outData, 'utf8');
+  fs.writeFileSync(outFilename, newHtml, 'utf8');
 }
 
-async function transformHtml(window, $, transformsModulePath) {
-  if (transformsModulePath === undefined) {
-    console.log("No transformation module provided");
-  } else {
-    console.log("Transforming using", transformsModulePath);
-    const mod = await load(transformsModulePath);
-    mod.transform(window, $);
-  }
+function transformDOM(transformFunction, html) {
+  const dom = new JSDOM(html);
+  const $ = jQuery(dom.window);
+  transformFunction(dom.window, $);
+  return dom.serialize();
 }

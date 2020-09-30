@@ -111,14 +111,19 @@ importHtml: [
 #### HTML transformation modules
 
 HTML can be transformed programmatically using Javascript transformation modules.
-You can perform different transformations on different HTML files by using
-different glob pattern items in [importHtml](#importhtml).
+You can perform specific transformations on specific HTML files by using
+specific glob pattern items in [importHtml](#importhtml).
 
-The file will be serialised sand saved in the destination directory after
+The file will be serialised and saved in the destination directory after
 transformation.
 
-Each transformation module must export a function `transform` which receives
-arguments
+Each transformation module can export the following functions:
+
+##### `transformDOM`
+
+Transforms the DOM with side-effects of DOM and jQuery methods.
+
+Argumets:
 
 - `window`: a DOM window object
 - `$`: a jQuery object initialised on the same window object.
@@ -126,7 +131,7 @@ arguments
 e.g. for a file `src/js/webflow/import.js`
 
 ```js
-exports.transform = function(window, $) {
+exports.transformDOM = function(window, $) {
   $("title").text("This was modified programmatically!");
 
   // Adding a script tag to body via jQuery seems to add it to head as well?!
@@ -146,4 +151,40 @@ and config
     "transforms": "./src/js/webflow/import.js"
   }
 ]
+```
+
+##### `transformHTML`
+
+Returns a modified HTML string.
+
+Arguments:
+
+- `html`: String
+
+e.g.
+
+```js
+exports.transformHTML = function(html) {
+  // Load Django template tags
+  let newHtml = "{% load static %}\n" + html;
+
+  // Replace asset paths with Django Static asset paths
+  newHtml = newHtml.replace(/"(js|css|images|fonts)\//g, "\"/static/$1/");
+  return newHtml;
+};
+```
+
+## More examples
+
+Make the title and og:title tag dynamic when using the HTML file as a Django template.
+
+Also adds an og:description tag.
+
+```js
+exports.transformDOM = function(window, $) {
+  $("title").text("{{ page_title }}");
+  $('meta[property="og:title"]').attr("content", "{{ page_title }}");
+
+  $("head").append('<meta property="og:description" content="{{ page_description }}">\n');
+}
 ```
