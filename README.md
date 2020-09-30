@@ -38,8 +38,41 @@ By default, the `css`, `js`, `images`, and `fonts` directories are copied to the
 
     import-webflow webflow-export.zip
 
+e.g.
+
+    Extracting to temporary directory /tmp/tmp-147494-K5wvv6RJG20P
+    Copying css to src/css
+    Copying js to src/js
+    Copying images to src/images
+    Copying fonts to src/fonts
+    Looking for files matching *.html in /tmp/tmp-147494-K5wvv6RJG20P
+    Reading /tmp/tmp-147494-K5wvv6RJG20P/index.html
+    No transformation module provided
+    Writing src/index.html
+    Cleaning up temporary directory /tmp/tmp-147494-K5wvv6RJG20P
+
 You can customise the import by specifying configuration in your `package.json` file under the `importWebflowExport` key.
 
+e.g.
+
+```json
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "parcel src/index.html"
+  },
+  "importWebflowExport": {
+    "importHtml": [
+      {
+        "glob": "*.html",
+        "destDir": "src",
+        "transforms": "./src/js/webflow/import.js"
+      }
+    ]
+  }
+}
+```
 
 ### copyTrees
 
@@ -63,7 +96,7 @@ copyTrees: {
 
 Each item is an object with the keys
 
-- `glob`: a [glob]() to match HTML filenames that will be processed by this item
+- `glob`: a [glob](https://www.npmjs.com/package/glob) to match HTML filenames that will be processed by this item
 - `destDir`: the directory relative to the current working directory
 - `transforms` (optional): path to a [transformation module](#html-transformation-modules) relative to the current working directory when you run `import-webflow`.
 
