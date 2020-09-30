@@ -2,14 +2,13 @@
 
 const tmp = require('tmp');
 const extract = require('extract-zip');
-const ncp = require('ncp').ncp;
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const jQuery = require('jquery');
-const fs = require('fs');
+const fs = require('fs-extra');
 const glob = require("glob");
-const rimraf = require("rimraf");
 const load = require('load-plugin');
+const path = require('path');
 
 const defaults = {
   copyTrees: {
@@ -45,22 +44,17 @@ async function importZipfile(zipfilePath) {
   copyTrees(tmpDir, config && config.copyTrees);
   await importHtml(tmpDir, config && config.importHtml);
   console.log("Cleaning up temporary directory", tmpDir);
-  rimraf(tmpDir, (err) => { if (err) console.error(err); });
+  fs.removeSync(tmpDir);
 
 }
 
 function copyTrees(tmpDir, packageConfig) {
   const config = packageConfig || defaults.copyTrees;
-  for (let sourceDir in defaults.copyTrees) {
-    const destDir = defaults.copyTrees[sourceDir];
+  for (let sourceDir in config) {
+    const destDir = config[sourceDir];
     console.log("Copying", sourceDir, "to", destDir);
-    ncp(`${tmpDir}/${sourceDir}`, destDir, { stopOnError: true }, ncpCallback);
+    fs.copySync(`${tmpDir}/${sourceDir}`, destDir);
   }
-}
-
-function ncpCallback(err) {
-  if (err)
-    console.error(err);
 }
 
 function importHtml(tmpDir, packageConfig) {
@@ -84,6 +78,8 @@ async function importHtmlFile(filename, tmpDir, destDir, transformsModulePath) {
 
   const outData = dom.serialize();
   const outFilename = `${destDir}${relativePath}`;
+  const outDir = path.dirname(outFilename);
+  fs.mkdirpSync(outDir);
   console.log("Writing", outFilename);
   fs.writeFileSync(outFilename, outData, 'utf8');
 }
