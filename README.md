@@ -19,6 +19,9 @@ Use this for example to
 - Adds template tags for server-side templating e.g. in a Django app. This is
   useful for example for meta tags for search engines that don't execute
   javascript.
+  
+See our [best practises](https://openup.gitbook.io/handbook/tech/custom-dom-manipulation-in-webflow-sites) 
+building pages in webflow and then modifying the DOM based on data.
 
 
 ## Installation
